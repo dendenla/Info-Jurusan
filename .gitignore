@@ -1,0 +1,132 @@
+# Git Ignore File
+# Exclude dari version control
+
+# Operating System
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# IDE & Editor
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.swo
+*~
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+composer.lock
+package-lock.json
+yarn.lock
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Database
+*.sql
+!database.sql
+database_backup/
+*.db
+*.sqlite
+.php_cs.cache
+
+# Uploads & Temp Files
+uploads/
+temp/
+tmp/
+cache/
+*.tmp
+.sass-cache/
+
+# Environment Variables
+.env
+.env.backup
+.env.local
+.env.*.local
+
+# Build & Distribution
+dist/
+build/
+.build/
+node_modules/
+vendor/
+
+# Testing
+coverage/
+.nyc_output/
+.phpunit.result.cache
+
+# Configuration (if sensitive)
+config/database.local.php
+config/.env
+
+# Backup & Archive
+*.zip
+*.rar
+*.tar.gz
+*.bak
+*.backup
+backup/
+
+# OS Specific
+# Windows
+[Dd]esktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.AppleDouble
+.LSOverride
+
+# Linux
+.directory
+
+# IDE Specific
+# VS Code
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# PhpStorm
+.idea/
+*.iml
+*.iws
+*.ipr
+
+# Sublime Text
+*.sublime-settings
+
+# Atom
+.atom/
+
+# Project Files
+*.phar
+.php_cs
+.php_cs.dist
+
+# Asset Processing
+.sass-cache/
+.less-cache/
+node_modules/
+
+# Misc
+.htaccess.bak
+SECURITY.txt
+robots.txt.backup
+
+# Keep these directories
+!uploads/.gitkeep
+!logs/.gitkeep
+!cache/.gitkeep
