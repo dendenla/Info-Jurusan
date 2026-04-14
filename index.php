@@ -2,6 +2,11 @@
 $page_title = "Beranda";
 include 'includes/header.php';
 
+// Get total majors count
+$total_result = $conn->query("SELECT COUNT(*) as count FROM majors");
+$total_row = $total_result->fetch_assoc();
+$total_majors = $total_row['count'];
+
 // Get majors untuk preview
 $majors_query = $conn->query("SELECT * FROM majors LIMIT 6");
 ?>
