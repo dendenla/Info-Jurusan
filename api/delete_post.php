@@ -9,11 +9,21 @@ if ($id <= 0) {
     exit;
 }
 
-$sql = "DELETE FROM posts WHERE id = $id";
+$sql = "DELETE FROM posts WHERE id = ?";
+$stmt = $conn->prepare($sql);
 
-if ($conn->query($sql) === TRUE) {
+if ($stmt === false) {
+    echo json_encode(['success' => false, 'message' => 'Gagal mempersiapkan query']);
+    exit;
+}
+
+$stmt->bind_param("i", $id);
+
+if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Pesan berhasil dihapus']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Gagal menghapus pesan']);
 }
+
+$stmt->close();
 ?>

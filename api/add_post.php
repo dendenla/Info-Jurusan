@@ -21,16 +21,22 @@ if (strlen($message) > 500) {
     exit;
 }
 
-// Escape input
-$name = mysqli_real_escape_string($conn, $name);
-$message = mysqli_real_escape_string($conn, $message);
+// Insert ke database dengan prepared statement
+$sql = "INSERT INTO posts (name, message, likes, created_at) VALUES (?, ?, 0, NOW())";
+$stmt = $conn->prepare($sql);
 
-// Insert ke database
-$sql = "INSERT INTO posts (name, message, likes, created_at) VALUES ('$name', '$message', 0, NOW())";
+if ($stmt === false) {
+    echo json_encode(['success' => false, 'message' => 'Gagal mempersiapkan query']);
+    exit;
+}
 
-if ($conn->query($sql) === TRUE) {
+$stmt->bind_param("ss", $name, $message);
+
+if ($stmt->execute()) {
     echo json_encode(['success' => true, 'message' => 'Pesan berhasil dikirim']);
 } else {
     echo json_encode(['success' => false, 'message' => 'Gagal mengirim pesan']);
 }
+
+$stmt->close();
 ?>

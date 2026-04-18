@@ -5,33 +5,47 @@ include 'includes/header.php';
 $success_message = '';
 $error_message = '';
 
+// Generate CSRF token
+if (empty($_SESSION['csrf_token'])) {
+    $_SESSION['csrf_token'] = bin2hex(random_bytes(32));
+}
+
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $name = trim($_POST['name'] ?? '');
-    $email = trim($_POST['email'] ?? '');
-    $message = trim($_POST['message'] ?? '');
+    // Verify CSRF token
+    if (empty($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token']) {
+        $error_message = "Permintaan tidak valid. Silakan coba lagi.";
+    } elseif (true) {
+        $name = trim($_POST['name'] ?? '');
+        $email = trim($_POST['email'] ?? '');
+        $message = trim($_POST['message'] ?? '');
 
-    // Validasi
-    if (empty($name) || empty($email) || empty($message)) {
-        $error_message = "Semua field harus diisi!";
-    } elseif (strlen($name) > 100 || strlen($email) > 100 || strlen($message) > 1000) {
-        $error_message = "Input terlalu panjang!";
-    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        $error_message = "Email tidak valid!";
-    } else {
-        // Escape input
-        $name = mysqli_real_escape_string($conn, $name);
-        $email = mysqli_real_escape_string($conn, $email);
-        $message = mysqli_real_escape_string($conn, $message);
-
-        // Insert ke database
-        $sql = "INSERT INTO messages (name, email, message, created_at) VALUES ('$name', '$email', '$message', NOW())";
-        
-        if ($conn->query($sql) === TRUE) {
-            $success_message = "Terima kasih! Pesan Anda telah dikirim. Kami akan segera membalasnya.";
-            $_POST = array(); // Clear form
+        // Validasi
+        if (empty($name) || empty($email) || empty($message)) {
+            $error_message = "Semua field harus diisi!";
+        } elseif (strlen($name) > 100 || strlen($email) > 100 || strlen($message) > 1000) {
+            $error_message = "Input terlalu panjang!";
+        } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            $error_message = "Email tidak valid!";
         } else {
-            $error_message = "Gagal mengirim pesan. Silakan coba lagi.";
+            // Insert ke database dengan prepared statement
+            $sql = "INSERT INTO messages (name, email, message, created_at) VALUES (?, ?, ?, NOW())";
+            $stmt = $conn->prepare($sql);
+            
+            if ($stmt === false) {
+                $error_message = "Gagal mempersiapkan query. Silakan coba lagi.";
+            } else {
+                $stmt->bind_param("sss", $name, $email, $message);
+                
+                if ($stmt->execute()) {
+                    $success_message = "Terima kasih! Pesan Anda telah dikirim. Kami akan segera membalasnya.";
+                    $_POST = array(); // Clear form
+                } else {
+                    $error_message = "Gagal mengirim pesan. Silakan coba lagi.";
+                }
+                
+                $stmt->close();
+            }
         }
     }
 }
@@ -70,6 +84,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <?php endif; ?>
 
                             <form method="POST">
+                                <input type="hidden" name="csrf_token" value="<?php echo htmlspecialchars($_SESSION['csrf_token']); ?>">
                                 <div class="mb-3">
                                     <label for="contactName" class="form-label fw-bold">Nama <span class="text-danger">*</span></label>
                                     <input type="text" class="form-control form-control-lg" id="contactName" name="name" placeholder="Masukkan nama Anda" required value="<?php echo htmlspecialchars($_POST['name'] ?? ''); ?>">

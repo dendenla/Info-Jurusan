@@ -1,4 +1,8 @@
 <?php
+// Start session
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 // Include database configuration
 require_once dirname(__DIR__) . '/config/database.php';
 ?>
