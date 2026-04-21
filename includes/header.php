@@ -5,6 +5,7 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 // Include database configuration
 require_once dirname(__DIR__) . '/config/database.php';
+require_once dirname(__DIR__) . '/config/auth.php';
 ?>
 <!DOCTYPE html>
 <html lang="id">
@@ -43,6 +44,50 @@ require_once dirname(__DIR__) . '/config/database.php';
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="kontak.php">Kontak</a>
+                    </li>
+                    <li class="nav-item dropdown">
+                        <?php if (isLoggedIn()): ?>
+                            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-person-circle me-1"></i><?php echo htmlspecialchars($_SESSION['username'] ?? 'User'); ?>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                <?php if (isAdmin()): ?>
+                                    <li>
+                                        <a class="dropdown-item" href="admin.php">
+                                            <i class="bi bi-gear me-2"></i>Admin Panel
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                <?php endif; ?>
+                                <li>
+                                    <a class="dropdown-item" href="login.php?logout=1">
+                                        <i class="bi bi-box-arrow-right me-2"></i>Logout
+                                    </a>
+                                </li>
+                            </ul>
+                        <?php else: ?>
+                            <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown">
+                                <i class="bi bi-box-arrow-in-right me-1"></i>Login
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="loginDropdown">
+                                <li>
+                                    <a class="dropdown-item" href="login.php?type=user">
+                                        <i class="bi bi-person me-2"></i>Login User
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="login.php?type=admin">
+                                        <i class="bi bi-shield-lock me-2"></i>Login Admin
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item" href="register.php">
+                                        <i class="bi bi-person-plus me-2"></i>Daftar Akun Baru
+                                    </a>
+                                </li>
+                            </ul>
+                        <?php endif; ?>
                     </li>
                 </ul>
             </div>

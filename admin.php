@@ -2,39 +2,26 @@
 // admin.php - Admin Panel Lengkap
 session_start();
 include 'config/database.php';
+include 'config/auth.php';
 
-$ADMIN_PASSWORD = "admin123"; // ⚠️ GANTI INI DENGAN PASSWORD ANDA
-
-// Handle logout
-if (isset($_GET['logout'])) {
-    session_destroy();
-    header('Location: admin.php');
+// Check if user is logged in and is admin
+if (!isLoggedIn() || !isAdmin()) {
+    header('Location: login.php');
     exit;
 }
 
-// Handle login
-$login_error = '';
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['password'])) {
-    $input_password = $_POST['password'] ?? '';
-    
-    if ($input_password === $ADMIN_PASSWORD) {
-        $_SESSION['admin_logged_in'] = true;
-        $_SESSION['admin_login_time'] = time();
-        $login_error = '';
-    } else {
-        $login_error = 'Password salah! Silakan coba lagi.';
-        $_SESSION['admin_logged_in'] = false;
-    }
+// Handle logout
+if (isset($_GET['logout'])) {
+    logout();
+    header('Location: login.php');
+    exit;
 }
-
-// Check if already logged in
-$is_logged_in = isset($_SESSION['admin_logged_in']) && $_SESSION['admin_logged_in'] === true;
 
 // Get page/tab yang aktif
 $page = $_GET['page'] ?? 'dashboard';
 
 // Handle delete post
-if ($is_logged_in && isset($_GET['delete_post'])) {
+if (isset($_GET['delete_post'])) {
     $post_id = intval($_GET['delete_post']);
     $sql = "DELETE FROM posts WHERE id = ?";
     $stmt = $conn->prepare($sql);
@@ -46,7 +33,7 @@ if ($is_logged_in && isset($_GET['delete_post'])) {
 }
 
 // Handle delete major
-if ($is_logged_in && isset($_GET['delete_major'])) {
+if (isset($_GET['delete_major'])) {
     $major_id = intval($_GET['delete_major']);
     $sql = "DELETE FROM majors WHERE id = ?";
     $stmt = $conn->prepare($sql);
@@ -58,7 +45,7 @@ if ($is_logged_in && isset($_GET['delete_major'])) {
 }
 
 // Handle delete message
-if ($is_logged_in && isset($_GET['delete_message'])) {
+if (isset($_GET['delete_message'])) {
     $msg_id = intval($_GET['delete_message']);
     $sql = "DELETE FROM messages WHERE id = ?";
     $stmt = $conn->prepare($sql);
@@ -69,44 +56,129 @@ if ($is_logged_in && isset($_GET['delete_message'])) {
     exit;
 }
 
-// Handle add/edit major
-$major_form_error = '';
-$major_form_success = '';
-if ($is_logged_in && $_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_major') {
-    $major_id = intval($_POST['major_id'] ?? 0);
-    $name = trim($_POST['major_name'] ?? '');
-    $description = trim($_POST['major_description'] ?? '');
-    $content = trim($_POST['major_content'] ?? '');
-    $image = trim($_POST['major_image'] ?? '');
+// Handle delete user
+if (isset($_GET['delete_user'])) {
+    $user_id = intval($_GET['delete_user']);
+    // Jangan delete user yang sedang login
+    if ($user_id == $_SESSION['user_id']) {
+        header('Location: admin.php?page=users&error=Tidak bisa menghapus user yang sedang login!');
+        exit;
+    }
+    $sql = "DELETE FROM users WHERE id = ?";
+    $stmt = $conn->prepare($sql);
+    $stmt->bind_param("i", $user_id);
+    $stmt->execute();
+    $stmt->close();
+    header('Location: admin.php?page=users&deleted=1');
+    exit;
+}
+
+// Handle edit user role
+$user_form_error = '';
+$user_form_success = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'update_user_role') {
+    $user_id = intval($_POST['user_id'] ?? 0);
+    $new_role = trim($_POST['role'] ?? 'user');
     
-    if (empty($name) || empty($description) || empty($content)) {
-        $major_form_error = 'Semua field harus diisi!';
+    // Validasi role
+    if (!in_array($new_role, ['admin', 'user'])) {
+        $user_form_error = 'Role tidak valid!';
+    } else if ($user_id == $_SESSION['user_id'] && $new_role !== 'admin') {
+        // Jangan ubah role user sendiri menjadi user biasa
+        $user_form_error = 'Anda tidak bisa mengubah role Anda sendiri menjadi user biasa!';
     } else {
-        if ($major_id > 0) {
-            // Update
-            $sql = "UPDATE majors SET name = ?, description = ?, content = ?, image = ? WHERE id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssssi", $name, $description, $content, $image, $major_id);
-        } else {
-            // Insert
-            $sql = "INSERT INTO majors (name, description, content, image) VALUES (?, ?, ?, ?)";
-            $stmt = $conn->prepare($sql);
-            $stmt->bind_param("ssss", $name, $description, $content, $image);
-        }
+        $sql = "UPDATE users SET role = ? WHERE id = ?";
+        $stmt = $conn->prepare($sql);
+        $stmt->bind_param("si", $new_role, $user_id);
         
         if ($stmt->execute()) {
-            $major_form_success = $major_id > 0 ? 'Jurusan berhasil diupdate!' : 'Jurusan berhasil ditambahkan!';
-            $_POST = array();
+            $user_form_success = 'Role user berhasil diubah!';
         } else {
-            $major_form_error = 'Gagal menyimpan jurusan!';
+            $user_form_error = 'Gagal mengubah role user!';
         }
         $stmt->close();
     }
 }
 
+$major_form_error = '';
+$major_form_success = '';
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['action'] === 'save_major') {
+    $major_id = intval($_POST['major_id'] ?? 0);
+    $name = trim($_POST['major_name'] ?? '');
+    $description = trim($_POST['major_description'] ?? '');
+    $content = trim($_POST['major_content'] ?? '');
+    $image = '';
+    
+    if (empty($name) || empty($description) || empty($content)) {
+        $major_form_error = 'Semua field harus diisi!';
+    } else {
+        // Handle file upload
+        if (isset($_FILES['major_image']) && $_FILES['major_image']['size'] > 0) {
+            $upload_dir = 'uploads/majors/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            
+            $file_name = $_FILES['major_image']['name'];
+            $file_tmp = $_FILES['major_image']['tmp_name'];
+            $file_size = $_FILES['major_image']['size'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            
+            $allowed_ext = array('jpg', 'jpeg', 'png', 'gif', 'webp');
+            $max_size = 5 * 1024 * 1024; // 5MB
+            
+            if (!in_array($file_ext, $allowed_ext)) {
+                $major_form_error = 'Format file tidak diizinkan! Gunakan JPG, PNG, GIF, atau WebP.';
+            } elseif ($file_size > $max_size) {
+                $major_form_error = 'Ukuran file terlalu besar! Maksimal 5MB.';
+            } else {
+                $new_filename = 'major_' . time() . '.' . $file_ext;
+                $upload_path = $upload_dir . $new_filename;
+                
+                if (move_uploaded_file($file_tmp, $upload_path)) {
+                    $image = $upload_path;
+                } else {
+                    $major_form_error = 'Gagal upload file!';
+                }
+            }
+        } else {
+            // Jika tidak upload file baru, gunakan image lama
+            if ($major_id > 0) {
+                $result = $conn->query("SELECT image FROM majors WHERE id = $major_id");
+                if ($result && $result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    $image = $row['image'];
+                }
+            }
+        }
+        
+        if (empty($major_form_error)) {
+            if ($major_id > 0) {
+                // Update
+                $sql = "UPDATE majors SET name = ?, description = ?, content = ?, image = ? WHERE id = ?";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ssssi", $name, $description, $content, $image, $major_id);
+            } else {
+                // Insert
+                $sql = "INSERT INTO majors (name, description, content, image) VALUES (?, ?, ?, ?)";
+                $stmt = $conn->prepare($sql);
+                $stmt->bind_param("ssss", $name, $description, $content, $image);
+            }
+            
+            if ($stmt->execute()) {
+                $major_form_success = $major_id > 0 ? 'Jurusan berhasil diupdate!' : 'Jurusan berhasil ditambahkan!';
+                $_POST = array();
+            } else {
+                $major_form_error = 'Gagal menyimpan jurusan!';
+            }
+            $stmt->close();
+        }
+    }
+}
+
 // Get edit major data
 $edit_major = null;
-if ($is_logged_in && isset($_GET['edit_major'])) {
+if (isset($_GET['edit_major'])) {
     $major_id = intval($_GET['edit_major']);
     $result = $conn->query("SELECT * FROM majors WHERE id = $major_id");
     if ($result->num_rows > 0) {
@@ -119,6 +191,7 @@ $total_majors = $conn->query("SELECT COUNT(*) as total FROM majors")->fetch_asso
 $total_posts = $conn->query("SELECT COUNT(*) as total FROM posts")->fetch_assoc()['total'];
 $total_messages = $conn->query("SELECT COUNT(*) as total FROM messages")->fetch_assoc()['total'];
 $total_likes = $conn->query("SELECT SUM(likes) as total FROM posts")->fetch_assoc()['total'] ?? 0;
+$total_users = $conn->query("SELECT COUNT(*) as total FROM users")->fetch_assoc()['total'];
 
 // Get all data
 $posts = $conn->query("SELECT * FROM posts ORDER BY created_at DESC");
@@ -230,54 +303,19 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
             <a class="navbar-brand fw-bold" href="#">
                 <i class="bi bi-shield-lock me-2"></i>Admin Panel - SMKN 1 Garut
             </a>
-            <?php if ($is_logged_in): ?>
-                <div class="ms-auto d-flex gap-2 align-items-center">
-                    <span class="text-white">
-                        <i class="bi bi-person-circle me-2"></i>Admin
-                    </span>
-                    <a href="?logout=1" class="btn btn-outline-light btn-sm">
-                        <i class="bi bi-box-arrow-right me-1"></i>Logout
-                    </a>
-                </div>
-            <?php endif; ?>
+            <div class="ms-auto d-flex gap-2 align-items-center">
+                <span class="text-white">
+                    <i class="bi bi-person-circle me-2"></i><?php echo htmlspecialchars($_SESSION['username'] ?? 'Admin'); ?>
+                </span>
+                <a href="?logout=1" class="btn btn-outline-light btn-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i>Logout
+                </a>
+            </div>
         </div>
     </nav>
 
-    <?php if (!$is_logged_in): ?>
-        <!-- Login Page -->
-        <div class="container py-5">
-            <div class="row justify-content-center" style="min-height: 80vh; display: flex; align-items: center;">
-                <div class="col-md-4">
-                    <div class="card border-0 shadow-lg">
-                        <div class="card-body p-5">
-                            <h3 class="card-title fw-bold mb-4 text-center">
-                                <i class="bi bi-lock-fill text-primary me-2"></i>Admin Login
-                            </h3>
-                            
-                            <?php if ($login_error): ?>
-                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                                    <i class="bi bi-exclamation-circle me-2"></i><?php echo $login_error; ?>
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                                </div>
-                            <?php endif; ?>
-
-                            <form method="POST">
-                                <div class="mb-3">
-                                    <label for="password" class="form-label fw-bold">Password Admin</label>
-                                    <input type="password" class="form-control form-control-lg" id="password" name="password" placeholder="Masukkan password" required autofocus>
-                                </div>
-                                <button type="submit" class="btn btn-primary w-100 fw-bold py-2">
-                                    <i class="bi bi-lock-fill me-2"></i>Login
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    <?php else: ?>
-        <!-- Admin Panel -->
-        <div class="container-fluid py-4">
+    <!-- Admin Panel -->
+    <div class="container-fluid py-4">
             <div class="row">
                 <!-- Sidebar -->
                 <div class="col-lg-2">
@@ -297,6 +335,9 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                             </a>
                             <a class="nav-link <?php echo $page === 'messages' ? 'active' : ''; ?>" href="?page=messages">
                                 <i class="bi bi-envelope me-2"></i>Pesan Kontak (<?php echo $total_messages; ?>)
+                            </a>
+                            <a class="nav-link <?php echo $page === 'users' ? 'active' : ''; ?>" href="?page=users">
+                                <i class="bi bi-people me-2"></i>Manage Users (<?php echo $total_users; ?>)
                             </a>
                         </nav>
                     </div>
@@ -361,6 +402,19 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                     <h3 class="stat-number text-danger"><?php echo $total_likes; ?></h3>
                                                 </div>
                                                 <i class="bi bi-hand-thumbs-up-fill text-danger" style="font-size: 2rem;"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 col-xl-3">
+                                    <div class="card stat-card">
+                                        <div class="card-body">
+                                            <div class="d-flex justify-content-between align-items-start">
+                                                <div>
+                                                    <p class="text-muted small mb-1">Total Users</p>
+                                                    <h3 class="stat-number text-info"><?php echo $total_users; ?></h3>
+                                                </div>
+                                                <i class="bi bi-people-fill text-info" style="font-size: 2rem;"></i>
                                             </div>
                                         </div>
                                     </div>
@@ -554,7 +608,7 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                         <h5 class="modal-title fw-bold">Edit Jurusan</h5>
                                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                                     </div>
-                                                    <form method="POST">
+                                                    <form method="POST" enctype="multipart/form-data">
                                                         <div class="modal-body">
                                                             <input type="hidden" name="action" value="save_major">
                                                             <input type="hidden" name="major_id" value="<?php echo $major['id']; ?>">
@@ -572,8 +626,15 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                                 <textarea class="form-control" name="major_content" rows="5" required><?php echo htmlspecialchars($major['content']); ?></textarea>
                                                             </div>
                                                             <div class="mb-3">
-                                                                <label class="form-label fw-bold">URL Gambar</label>
-                                                                <input type="url" class="form-control" name="major_image" value="<?php echo htmlspecialchars($major['image']); ?>" placeholder="https://...">
+                                                                <label class="form-label fw-bold">Gambar Jurusan</label>
+                                                                <?php if (!empty($major['image']) && file_exists($major['image'])): ?>
+                                                                    <div class="mb-2">
+                                                                        <img src="<?php echo htmlspecialchars($major['image']); ?>" alt="Preview" style="max-width: 100%; height: auto; max-height: 150px;">
+                                                                        <p class="small text-muted mt-1">Gambar saat ini</p>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <input type="file" class="form-control" name="major_image" accept="image/*">
+                                                                <small class="text-muted">Biarkan kosong jika tidak ingin mengubah gambar</small>
                                                             </div>
                                                         </div>
                                                         <div class="modal-footer">
@@ -607,14 +668,8 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                         <h5 class="modal-title fw-bold">Tambah Jurusan Baru</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                                     </div>
-                                    <form method="POST">
+                                    <form method="POST" enctype="multipart/form-data">
                                         <div class="modal-body">
-                                            <?php if ($major_form_error): ?>
-                                                <div class="alert alert-danger">
-                                                    <i class="bi bi-exclamation-circle me-2"></i><?php echo $major_form_error; ?>
-                                                </div>
-                                            <?php endif; ?>
-
                                             <input type="hidden" name="action" value="save_major">
                                             <input type="hidden" name="major_id" value="0">
                                             
@@ -631,8 +686,9 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                 <textarea class="form-control" name="major_content" rows="5" required placeholder="Konten detail, kurikulum, prospek kerja..."></textarea>
                                             </div>
                                             <div class="mb-3">
-                                                <label class="form-label fw-bold">URL Gambar</label>
-                                                <input type="url" class="form-control" name="major_image" placeholder="https://via.placeholder.com/400x300">
+                                                <label class="form-label fw-bold">Gambar Jurusan</label>
+                                                <input type="file" class="form-control" name="major_image" accept="image/*" placeholder="Pilih gambar...">
+                                                <small class="text-muted">Format: JPG, PNG, GIF, WebP. Maksimal 5MB.</small>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
@@ -740,10 +796,146 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                             </div>
                         </div>
                     <?php endif; ?>
+
+                    <!-- Users Management -->
+                    <?php if ($page === 'users'): ?>
+                        <div class="content-area">
+                            <h2 class="fw-bold mb-4">
+                                <i class="bi bi-people text-info me-2"></i>Manage Users
+                            </h2>
+
+                            <?php if (isset($_GET['deleted'])): ?>
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle me-2"></i>User berhasil dihapus!
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if (isset($_GET['error'])): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle me-2"></i><?php echo htmlspecialchars($_GET['error']); ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($user_form_success): ?>
+                                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-check-circle me-2"></i><?php echo $user_form_success; ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <?php if ($user_form_error): ?>
+                                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                                    <i class="bi bi-exclamation-circle me-2"></i><?php echo $user_form_error; ?>
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            <?php endif; ?>
+
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Username</th>
+                                            <th>Email</th>
+                                            <th>Role</th>
+                                            <th>Terdaftar</th>
+                                            <th>Aksi</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <?php
+                                        $users = $conn->query("SELECT * FROM users ORDER BY created_at DESC");
+                                        if ($users->num_rows > 0) {
+                                            while ($user = $users->fetch_assoc()) {
+                                                $date = new DateTime($user['created_at']);
+                                                $date->modify('+7 hours');
+                                                $is_current = ($user['id'] == $_SESSION['user_id']);
+                                                ?>
+                                                <tr>
+                                                    <td><span class="badge bg-secondary"><?php echo $user['id']; ?></span></td>
+                                                    <td><strong><?php echo htmlspecialchars($user['username']); ?></strong>
+                                                        <?php if ($is_current): ?>
+                                                            <span class="badge bg-warning">Anda</span>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                    <td><?php echo htmlspecialchars($user['email']); ?></td>
+                                                    <td>
+                                                        <span class="badge <?php echo $user['role'] === 'admin' ? 'bg-danger' : 'bg-secondary'; ?>">
+                                                            <?php echo ucfirst($user['role']); ?>
+                                                        </span>
+                                                    </td>
+                                                    <td><small class="text-muted"><?php echo $date->format('d/m/Y'); ?></small></td>
+                                                    <td>
+                                                        <button class="btn btn-warning btn-sm btn-action" data-bs-toggle="modal" data-bs-target="#editRoleModal<?php echo $user['id']; ?>">
+                                                            <i class="bi bi-pencil-square me-1"></i>Edit Role
+                                                        </button>
+                                                        <?php if (!$is_current): ?>
+                                                            <a href="?page=users&delete_user=<?php echo $user['id']; ?>" class="btn btn-danger btn-sm btn-action" onclick="return confirm('Yakin hapus user ini?')">
+                                                                <i class="bi bi-trash me-1"></i>Hapus
+                                                            </a>
+                                                        <?php endif; ?>
+                                                    </td>
+                                                </tr>
+
+                                                <!-- Edit Role Modal -->
+                                                <div class="modal fade" id="editRoleModal<?php echo $user['id']; ?>" tabindex="-1">
+                                                    <div class="modal-dialog">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title fw-bold">Edit Role - <?php echo htmlspecialchars($user['username']); ?></h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                            </div>
+                                                            <form method="POST">
+                                                                <div class="modal-body">
+                                                                    <input type="hidden" name="action" value="update_user_role">
+                                                                    <input type="hidden" name="user_id" value="<?php echo $user['id']; ?>">
+                                                                    
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label fw-bold">Username</label>
+                                                                        <input type="text" class="form-control" value="<?php echo htmlspecialchars($user['username']); ?>" disabled>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label fw-bold">Email</label>
+                                                                        <input type="email" class="form-control" value="<?php echo htmlspecialchars($user['email']); ?>" disabled>
+                                                                    </div>
+                                                                    <div class="mb-3">
+                                                                        <label class="form-label fw-bold">Role *</label>
+                                                                        <select class="form-select" name="role" required>
+                                                                            <option value="user" <?php echo $user['role'] === 'user' ? 'selected' : ''; ?>>User Biasa</option>
+                                                                            <option value="admin" <?php echo $user['role'] === 'admin' ? 'selected' : ''; ?>>Admin</option>
+                                                                        </select>
+                                                                    </div>
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                                    <button type="submit" class="btn btn-primary">
+                                                                        <i class="bi bi-check-circle me-1"></i>Simpan Perubahan
+                                                                    </button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <?php
+                                            }
+                                        } else {
+                                            ?>
+                                            <tr>
+                                                <td colspan="6" class="text-center text-muted py-4">Tidak ada users</td>
+                                            </tr>
+                                            <?php
+                                        }
+                                        ?>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>
-    <?php endif; ?>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>

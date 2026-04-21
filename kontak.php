@@ -1,6 +1,7 @@
 <?php
 $page_title = "Kontak";
 include 'includes/header.php';
+include 'config/email.php';
 
 $success_message = '';
 $error_message = '';
@@ -38,6 +39,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $stmt->bind_param("sss", $name, $email, $message);
                 
                 if ($stmt->execute()) {
+                    // Send email notification to admin
+                    sendContactNotificationToAdmin($name, $email, nl2br(htmlspecialchars($message)));
+                    
+                    // Send confirmation email to user
+                    sendContactConfirmationToUser($name, $email);
+                    
                     $success_message = "Terima kasih! Pesan Anda telah dikirim. Kami akan segera membalasnya.";
                     $_POST = array(); // Clear form
                 } else {
