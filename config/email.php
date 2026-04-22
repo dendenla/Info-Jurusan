@@ -34,9 +34,15 @@ function sendEmail($to, $subject, $body, $from_name = null) {
     $headers .= "From: {$from_name} <" . EMAIL_FROM . ">\r\n";
     $headers .= "Reply-To: " . EMAIL_FROM . "\r\n";
     
-    // For production, implement SMTP or use PHPMailer
-    // This is a simple mail() function implementation
-    return mail($to, $subject, $body, $headers);
+    // Use PHP mail() - for production, implement SMTP or use PHPMailer
+    // Suppress error if mail server not available
+    if (@mail($to, $subject, $body, $headers)) {
+        return true;
+    }
+    
+    // Log failed email attempts
+    error_log("Failed to send email to: $to");
+    return false;
 }
 
 /**

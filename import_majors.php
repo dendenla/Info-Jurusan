@@ -676,13 +676,25 @@ try {
         echo "<div class='alert alert-info'>Data jurusan lama telah dihapus.</div>";
     }
 
-    // Insert data baru
+    // Insert data baru dengan pengecekan duplikasi
     $inserted = 0;
+    $duplicated = 0;
+    
     foreach ($majors as $major) {
         $name = $conn->real_escape_string($major['name']);
         $description = $conn->real_escape_string($major['description']);
         $content = $conn->real_escape_string($major['content']);
         $image = $conn->real_escape_string($major['image']);
+
+        // Check if major already exists by name (prevent duplicates)
+        $check_sql = "SELECT id FROM majors WHERE name = '$name' LIMIT 1";
+        $check_result = $conn->query($check_sql);
+        
+        if ($check_result && $check_result->num_rows > 0) {
+            // Major already exists, skip insertion
+            $duplicated++;
+            continue;
+        }
 
         $sql = "INSERT INTO majors (name, description, content, image) 
                 VALUES ('$name', '$description', '$content', '$image')";
@@ -695,6 +707,9 @@ try {
     echo "<div class='alert alert-success'>";
     echo "<h4>✓ Data Jurusan SMKN 1 Garut Berhasil Diperbarui!</h4>";
     echo "<p>Total jurusan yang ditambahkan: <strong>$inserted</strong>/10</p>";
+    if ($duplicated > 0) {
+        echo "<p class='text-warning'>Jurusan yang duplikat (tidak ditambahkan): <strong>$duplicated</strong></p>";
+    }
     echo "<p><a href='jurusan.php' class='btn btn-primary mt-3'>Lihat Halaman Jurusan</a></p>";
     echo "</div>";
 

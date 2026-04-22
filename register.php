@@ -25,8 +25,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         $result = registerUser($conn, $username, $email, $password);
         if ($result['success']) {
-            // Send registration confirmation email
-            sendRegistrationConfirmation($username, $email);
+            // Send registration confirmation email (don't block registration if email fails)
+            try {
+                sendRegistrationConfirmation($username, $email);
+            } catch (Exception $e) {
+                // Log error but don't show to user - registration is successful
+                error_log("Email sending failed for user $username: " . $e->getMessage());
+            }
             
             $register_success = $result['message'];
         } else {
