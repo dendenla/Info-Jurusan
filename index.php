@@ -88,8 +88,13 @@ $majors_query = $conn->query("SELECT * FROM majors LIMIT 6");
                     while ($major = $majors_query->fetch_assoc()) {
                         ?>
                         <div class="col-md-6 col-lg-4">
-                            <div class="card border-0 shadow-sm h-100 card-hover">
+                            <div class="card border-0 shadow-sm h-100 card-hover position-relative">
                                 <img src="<?php echo htmlspecialchars($major['image']); ?>" class="card-img-top" alt="<?php echo htmlspecialchars($major['name']); ?>" style="height: 200px; object-fit: cover;">
+                                <?php if (!empty($major['logo']) && file_exists($major['logo'])): ?>
+                                    <div style="position: absolute; top: 10px; right: 10px; background: white; border-radius: 8px; padding: 5px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);">
+                                        <img src="<?php echo htmlspecialchars($major['logo']); ?>" alt="Logo" style="height: 50px; width: auto; max-width: 50px;">
+                                    </div>
+                                <?php endif; ?>
                                 <div class="card-body">
                                     <h5 class="card-title fw-bold text-primary"><?php echo htmlspecialchars($major['name']); ?></h5>
                                     <p class="card-text text-muted text-truncate"><?php echo htmlspecialchars($major['description']); ?></p>

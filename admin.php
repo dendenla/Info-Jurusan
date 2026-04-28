@@ -108,11 +108,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     $description = trim($_POST['major_description'] ?? '');
     $content = trim($_POST['major_content'] ?? '');
     $image = '';
+    $logo = '';
     
     if (empty($name) || empty($description) || empty($content)) {
         $major_form_error = 'Semua field harus diisi!';
     } else {
-        // Handle file upload
+        // Handle file upload for image
         if (isset($_FILES['major_image']) && $_FILES['major_image']['size'] > 0) {
             $upload_dir = 'uploads/majors/';
             if (!is_dir($upload_dir)) {
@@ -128,9 +129,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             $max_size = 5 * 1024 * 1024; // 5MB
             
             if (!in_array($file_ext, $allowed_ext)) {
-                $major_form_error = 'Format file tidak diizinkan! Gunakan JPG, PNG, GIF, atau WebP.';
+                $major_form_error = 'Format file gambar tidak diizinkan! Gunakan JPG, PNG, GIF, atau WebP.';
             } elseif ($file_size > $max_size) {
-                $major_form_error = 'Ukuran file terlalu besar! Maksimal 5MB.';
+                $major_form_error = 'Ukuran file gambar terlalu besar! Maksimal 5MB.';
             } else {
                 $new_filename = 'major_' . time() . '.' . $file_ext;
                 $upload_path = $upload_dir . $new_filename;
@@ -138,7 +139,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 if (move_uploaded_file($file_tmp, $upload_path)) {
                     $image = $upload_path;
                 } else {
-                    $major_form_error = 'Gagal upload file!';
+                    $major_form_error = 'Gagal upload file gambar!';
                 }
             }
         } else {
@@ -152,17 +153,57 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
             }
         }
         
+        // Handle file upload for logo
+        if (isset($_FILES['major_logo']) && $_FILES['major_logo']['size'] > 0) {
+            $upload_dir = 'uploads/majors/';
+            if (!is_dir($upload_dir)) {
+                mkdir($upload_dir, 0777, true);
+            }
+            
+            $file_name = $_FILES['major_logo']['name'];
+            $file_tmp = $_FILES['major_logo']['tmp_name'];
+            $file_size = $_FILES['major_logo']['size'];
+            $file_ext = strtolower(pathinfo($file_name, PATHINFO_EXTENSION));
+            
+            $allowed_ext = array('jpg', 'jpeg', 'png', 'gif', 'webp', 'svg');
+            $max_size = 2 * 1024 * 1024; // 2MB
+            
+            if (!in_array($file_ext, $allowed_ext)) {
+                $major_form_error = 'Format file logo tidak diizinkan! Gunakan JPG, PNG, GIF, WebP, atau SVG.';
+            } elseif ($file_size > $max_size) {
+                $major_form_error = 'Ukuran file logo terlalu besar! Maksimal 2MB.';
+            } else {
+                $new_filename = 'logo_' . time() . '.' . $file_ext;
+                $upload_path = $upload_dir . $new_filename;
+                
+                if (move_uploaded_file($file_tmp, $upload_path)) {
+                    $logo = $upload_path;
+                } else {
+                    $major_form_error = 'Gagal upload file logo!';
+                }
+            }
+        } else {
+            // Jika tidak upload file baru, gunakan logo lama
+            if ($major_id > 0) {
+                $result = $conn->query("SELECT logo FROM majors WHERE id = $major_id");
+                if ($result && $result->num_rows > 0) {
+                    $row = $result->fetch_assoc();
+                    $logo = $row['logo'];
+                }
+            }
+        }
+        
         if (empty($major_form_error)) {
             if ($major_id > 0) {
                 // Update
-                $sql = "UPDATE majors SET name = ?, description = ?, content = ?, image = ? WHERE id = ?";
+                $sql = "UPDATE majors SET name = ?, description = ?, content = ?, image = ?, logo = ? WHERE id = ?";
                 $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ssssi", $name, $description, $content, $image, $major_id);
+                $stmt->bind_param("sssssi", $name, $description, $content, $image, $logo, $major_id);
             } else {
                 // Insert
-                $sql = "INSERT INTO majors (name, description, content, image) VALUES (?, ?, ?, ?)";
+                $sql = "INSERT INTO majors (name, description, content, image, logo) VALUES (?, ?, ?, ?, ?)";
                 $stmt = $conn->prepare($sql);
-                $stmt->bind_param("ssss", $name, $description, $content, $image);
+                $stmt->bind_param("sssss", $name, $description, $content, $image, $logo);
             }
             
             if ($stmt->execute()) {
@@ -636,6 +677,17 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                                 <input type="file" class="form-control" name="major_image" accept="image/*">
                                                                 <small class="text-muted">Biarkan kosong jika tidak ingin mengubah gambar</small>
                                                             </div>
+                                                            <div class="mb-3">
+                                                                <label class="form-label fw-bold">Logo Jurusan</label>
+                                                                <?php if (!empty($major['logo']) && file_exists($major['logo'])): ?>
+                                                                    <div class="mb-2">
+                                                                        <img src="<?php echo htmlspecialchars($major['logo']); ?>" alt="Logo Preview" style="max-width: 80px; height: auto; max-height: 80px;">
+                                                                        <p class="small text-muted mt-1">Logo saat ini</p>
+                                                                    </div>
+                                                                <?php endif; ?>
+                                                                <input type="file" class="form-control" name="major_logo" accept="image/*,.svg">
+                                                                <small class="text-muted">Format: PNG, JPG, GIF, WebP, atau SVG. Maksimal 2MB. Biarkan kosong jika tidak ingin mengubah logo.</small>
+                                                            </div>
                                                         </div>
                                                         <div class="modal-footer">
                                                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -689,6 +741,11 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                 <label class="form-label fw-bold">Gambar Jurusan</label>
                                                 <input type="file" class="form-control" name="major_image" accept="image/*" placeholder="Pilih gambar...">
                                                 <small class="text-muted">Format: JPG, PNG, GIF, WebP. Maksimal 5MB.</small>
+                                            </div>
+                                            <div class="mb-3">
+                                                <label class="form-label fw-bold">Logo Jurusan</label>
+                                                <input type="file" class="form-control" name="major_logo" accept="image/*,.svg" placeholder="Pilih logo...">
+                                                <small class="text-muted">Format: PNG, JPG, GIF, WebP, atau SVG. Maksimal 2MB. Gunakan logo yang simple dan jelas untuk tampilan kecil.</small>
                                             </div>
                                         </div>
                                         <div class="modal-footer">
