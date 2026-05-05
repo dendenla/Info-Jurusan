@@ -26,7 +26,7 @@ $major = $major_query->fetch_assoc();
                 <i class="bi bi-arrow-left"></i> Kembali
             </a>
             <div class="d-flex align-items-center gap-3">
-                <?php if (!empty($major['logo']) && file_exists($major['logo'])): ?>
+                <?php if (!empty($major['logo']) && file_exists(__DIR__ . DIRECTORY_SEPARATOR . $major['logo'])): ?>
                     <img src="<?php echo htmlspecialchars($major['logo']); ?>" alt="Logo" style="height: 80px; width: auto; max-width: 100px; filter: brightness(0) invert(1);">
                 <?php endif; ?>
                 <div>
@@ -80,7 +80,7 @@ $major = $major_query->fetch_assoc();
                         <div class="card-body p-4">
                             <h5 class="card-title fw-bold mb-4">Informasi Jurusan</h5>
                             
-                            <?php if (!empty($major['logo']) && file_exists($major['logo'])): ?>
+                            <?php if (!empty($major['logo']) && file_exists(__DIR__ . DIRECTORY_SEPARATOR . $major['logo'])): ?>
                                 <div class="mb-4 text-center">
                                     <img src="<?php echo htmlspecialchars($major['logo']); ?>" alt="Logo" style="height: 80px; width: auto; max-width: 100%;">
                                     <hr class="my-4">

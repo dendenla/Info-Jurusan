@@ -115,7 +115,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
     } else {
         // Handle file upload for image
         if (isset($_FILES['major_image']) && $_FILES['major_image']['size'] > 0) {
-            $upload_dir = 'uploads/majors/';
+            $upload_dir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'majors' . DIRECTORY_SEPARATOR;
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -137,7 +137,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $upload_path = $upload_dir . $new_filename;
                 
                 if (move_uploaded_file($file_tmp, $upload_path)) {
-                    $image = $upload_path;
+                    // Simpan path relatif untuk cross-platform compatibility
+                    $image = 'uploads/majors/' . $new_filename;
                 } else {
                     $major_form_error = 'Gagal upload file gambar!';
                 }
@@ -155,7 +156,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         
         // Handle file upload for logo
         if (isset($_FILES['major_logo']) && $_FILES['major_logo']['size'] > 0) {
-            $upload_dir = 'uploads/majors/';
+            $upload_dir = __DIR__ . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'majors' . DIRECTORY_SEPARATOR;
             if (!is_dir($upload_dir)) {
                 mkdir($upload_dir, 0777, true);
             }
@@ -177,7 +178,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
                 $upload_path = $upload_dir . $new_filename;
                 
                 if (move_uploaded_file($file_tmp, $upload_path)) {
-                    $logo = $upload_path;
+                    // Simpan path relatif untuk cross-platform compatibility
+                    $logo = 'uploads/majors/' . $new_filename;
                 } else {
                     $major_form_error = 'Gagal upload file logo!';
                 }
@@ -668,7 +670,7 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                             </div>
                                                             <div class="mb-3">
                                                                 <label class="form-label fw-bold">Gambar Jurusan</label>
-                                                                <?php if (!empty($major['image']) && file_exists($major['image'])): ?>
+                                                                <?php if (!empty($major['image']) && file_exists(__DIR__ . DIRECTORY_SEPARATOR . $major['image'])): ?>
                                                                     <div class="mb-2">
                                                                         <img src="<?php echo htmlspecialchars($major['image']); ?>" alt="Preview" style="max-width: 100%; height: auto; max-height: 150px;">
                                                                         <p class="small text-muted mt-1">Gambar saat ini</p>
@@ -679,7 +681,7 @@ $messages = $conn->query("SELECT * FROM messages ORDER BY created_at DESC");
                                                             </div>
                                                             <div class="mb-3">
                                                                 <label class="form-label fw-bold">Logo Jurusan</label>
-                                                                <?php if (!empty($major['logo']) && file_exists($major['logo'])): ?>
+                                                                <?php if (!empty($major['logo']) && file_exists(__DIR__ . DIRECTORY_SEPARATOR . $major['logo'])): ?>
                                                                     <div class="mb-2">
                                                                         <img src="<?php echo htmlspecialchars($major['logo']); ?>" alt="Logo Preview" style="max-width: 80px; height: auto; max-height: 80px;">
                                                                         <p class="small text-muted mt-1">Logo saat ini</p>

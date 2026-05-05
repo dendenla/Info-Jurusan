@@ -44,7 +44,6 @@ database_backup/
 .php_cs.cache
 
 # Uploads & Temp Files
-uploads/
 temp/
 tmp/
 cache/
