@@ -31,9 +31,9 @@ include 'includes/header.php';
                             <h5 class="card-title fw-bold mb-4">Alamat Lengkap</h5>
                             <p class="text-muted mb-3">
                                 <i class="bi bi-geo-alt text-primary me-2"></i>
-                                <strong>Jln. Jendral Sudirman No.123</strong><br>
-                                Kelurahan Samarang<br>
-                                Kecamatan Garut Kota<br>
+                                <strong>Jln. cimanuk No 309 A </strong><br>
+                                Kelurahan pataruman<br>
+                                Kecamatan Tarogong kidul <br>
                                 Kota Garut 44128<br>
                                 Jawa Barat, Indonesia
                             </p>
@@ -45,13 +45,13 @@ include 'includes/header.php';
                             <h5 class="card-title fw-bold mb-4">Petunjuk Arah</h5>
                             <p class="text-muted mb-3">
                                 <i class="bi bi-arrow-right text-primary me-2"></i>
-                                <strong>Dari Bandara Internasional Husein Sastranegara:</strong><br>
-                                Menuju arah Garut melalui Jalan Malabar, kemudian ke Jalan Jendral Sudirman. Sekolah berada di sebelah kiri jalan.
+                                <strong>Dari simpang lima:</strong><br>
+                                Lurus terus sampai tempat makan nazomi, kemudian ke Jalan pataruman  Sekolah berada di sebelah kanan jalan.
                             </p>
                             <p class="text-muted mb-3">
                                 <i class="bi bi-arrow-right text-primary me-2"></i>
-                                <strong>Dari Terminal Bus Garut:</strong><br>
-                                Ambil ojek atau taksi menuju Jalan Jendral Sudirman. Sekolah bersebelahan dengan pasar tradisional.
+                                <strong>Dari arah simpang lima:</strong><br>
+                                Ambil ojek atau taksi menuju Jalan pataruman. Sekolah bersebelahan dengan tempat makan nazomi.
                             </p>
                         </div>
                     </div>
@@ -95,7 +95,7 @@ include 'includes/header.php';
                             </h5>
                             <ul class="list-unstyled">
                                 <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Ruang Kelas Modern</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Laboratorium Komputer</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Lab setiap jurusan</li>
                                 <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Perpustakaan Digital</li>
                                 <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Aula Pertemuan</li>
                                 <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Kantin Sekolah</li>
@@ -111,11 +111,11 @@ include 'includes/header.php';
                                 <i class="bi bi-bus-front text-primary me-2"></i>Akses Transportasi
                             </h5>
                             <ul class="list-unstyled">
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Dekat dengan Terminal Bus</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Transportasi Umum Tersedia</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Mudah Diakses oleh Ojek</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Area Parkir Sepeda Motor</li>
-                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Area Parkir Mobil</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Angkot</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Gojek</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Grab car</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i> Motor</li>
+                                <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Sepeda</li>
                                 <li class="mb-2"><i class="bi bi-check-circle-fill text-success me-2"></i>Lokasi Strategis</li>
                             </ul>
                         </div>

@@ -15,4 +15,7 @@ if ($conn->connect_error) {
 
 // Set charset
 $conn->set_charset("utf8mb4");
+
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
 ?>
